@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LXFS HUD</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <style>
+    :root {
+      --accent: #ffffff;
+      --text: #fff;
+      --bg-transparent: rgba(255, 255, 255, 0.05);
+      --green-speaking: #00c896;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Arial', sans-serif;
+    }
+
+    body {
+      background: transparent;
+      color: var(--text);
+      overflow: hidden;
+    }
+
+    .hud-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 20px;
+      background: rgba(255, 255, 255, 0.04);
+      padding: 6px 12px;
+      border-radius: 12px;
+      box-shadow: 0 0 10px rgba(255,255,255,0.05);
+    }
+
+    .hud-item i {
+      color: var(--accent);
+      font-size: 24px;
+      transition: color 0.3s ease;
+    }
+
+    .hud-value, .hud-item i {
+      transition: all 0.3s ease;
+    }
+
+    .hud-value {
+      font-weight: bold;
+      font-size: 18px;
+    }
+
+    /* Geld oben rechts */
+    #cash-box {
+      position: fixed;
+      top: 70px;
+      right: 40px;
+      z-index: 999;
+    }
+
+    #bank-box {
+      position: fixed;
+      top: 120px;
+      right: 40px;
+      z-index: 999;
+    }
+
+    #job-box {
+      position: fixed;
+      top: 170px;
+      right: 40px;
+      z-index: 999;
+    }
+
+    #voice-box {
+      position: fixed;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 999;
+    }
+
+    /* Status Bars */
+    .status-container {
+      position: fixed;
+      bottom: 220px;
+      left: 73px;
+      display: flex;
+      gap: 14px;
+    }
+
+    .status-circle {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .status-circle i {
+      color: white;
+      font-size: 20px;
+      z-index: 2;
+    }
+
+    .status-fill {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      background: #00c896;
+      opacity: 0.6;
+      z-index: 1;
+      transition: height 0.3s ease-in-out;
+    }
+
+    /* Speedometer */
+    .vehicle-info {
+      position: fixed;
+      bottom: 30px;
+      right: 30px;
+      display: none; /* default versteckt */
+      gap: 20px;
+      background: rgba(255, 255, 255, 0.05);
+      padding: 10px 20px;
+      border-radius: 15px;
+      align-items: center;
+      box-shadow: 0 0 15px rgba(0,200,150,0.3);
+    }
+
+    .vehicle-info.show {
+      display: flex;
+    }
+
+    .vehicle-info .info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 18px;
+      color: white;
+      font-weight: 600;
+    }
+
+    /* Tank als Status-Kreis */
+    .fuel-circle {
+      position: relative;
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      margin-left: 10px;
+      box-shadow: 0 0 5px rgba(0,200,150,0.4);
+    }
+
+    .fuel-circle i {
+      color: white;
+      font-size: 22px;
+      position: relative;
+      z-index: 2;
+    }
+
+    .fuel-fill {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      background: #00c896;
+      opacity: 0.6;
+      z-index: 1;
+      transition: height 0.3s ease-in-out;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="cash-box" class="hud-item"><i class="fas fa-wallet"></i><span class="hud-value" id="cash">$0</span></div>
+  <div id="bank-box" class="hud-item"><i class="fas fa-university"></i><span class="hud-value" id="bank">$0</span></div>
+  <div id="job-box" class="hud-item"><i class="fas fa-briefcase"></i><span class="hud-value" id="job">· Unemployed</span></div>
+  <div id="voice-box" class="hud-item"><span class="hud-value" id="voice"><i class="fas fa-microphone"></i></span></div>
+
+  <div class="status-container">
+    <div class="status-circle">
+      <div class="status-fill" id="hunger-fill" style="height: 0%"></div>
+      <i class="fas fa-utensils"></i>
+    </div>
+    <div class="status-circle">
+      <div class="status-fill" id="thirst-fill" style="height: 0%"></div>
+      <i class="fas fa-tint"></i>
+    </div>
+    <div class="status-circle">
+      <div class="status-fill" id="energy-fill" style="height: 0%"></div>
+      <i class="fas fa-bolt"></i>
+    </div>
+  </div>
+
+  <!-- Speedometer mit Tank-Kreis -->
+  <div class="vehicle-info" id="vehicle-info">
+    <div class="info"><i class="fas fa-tachometer-alt"></i><span id="speed">0</span></div>
+
+    <div class="fuel-circle">
+      <div class="fuel-fill" id="fuel-fill" style="height: 0%;"></div>
+      <i class="fas fa-gas-pump"></i>
+    </div>
+
+<div class="fuel-circle armor-circle">
+  <div class="fuel-fill" id="armor-fill" style="height: 0%;"></div>
+  <i class="fas fa-shield-alt"></i>
+</div>
+  </div>
+
+  <script>
+  function _0xc925(){const _0x2cf200=['speed','hunger','310nYCnFT','energy','var(--green-speaking)','fuel','2449530NikESS','644932HPjOib','6udIPii','updateHud','armor-fill','inVehicle','bank','782060nYbCrd','thirst-fill','vehicle-info','innerText','style','data','1255628RoRzEv','cash','602DQoksH','height','516WGNuqb','action','7046584HyjGSC','var(--accent)','querySelector','thirst','1468NyrQwp','classList','Unemployed','18985SNFdBc','job','remove','show','getElementById','color','add'];_0xc925=function(){return _0x2cf200;};return _0xc925();}function _0x57e5(_0x1ef1ef,_0x463402){const _0xc92541=_0xc925();return _0x57e5=function(_0x57e58f,_0x30e8ed){_0x57e58f=_0x57e58f-0x193;let _0x420cc4=_0xc92541[_0x57e58f];return _0x420cc4;},_0x57e5(_0x1ef1ef,_0x463402);}(function(_0x438b3c,_0x203405){const _0x29e40a=_0x57e5,_0x5a2b95=_0x438b3c();while(!![]){try{const _0xe4e2c1=-parseInt(_0x29e40a(0x1b7))/0x1+parseInt(_0x29e40a(0x1b1))/0x2*(parseInt(_0x29e40a(0x1b2))/0x3)+-parseInt(_0x29e40a(0x1a0))/0x4*(parseInt(_0x29e40a(0x1a3))/0x5)+parseInt(_0x29e40a(0x19a))/0x6*(parseInt(_0x29e40a(0x198))/0x7)+-parseInt(_0x29e40a(0x19c))/0x8+-parseInt(_0x29e40a(0x1b0))/0x9+-parseInt(_0x29e40a(0x1ac))/0xa*(-parseInt(_0x29e40a(0x196))/0xb);if(_0xe4e2c1===_0x203405)break;else _0x5a2b95['push'](_0x5a2b95['shift']());}catch(_0x5a504c){_0x5a2b95['push'](_0x5a2b95['shift']());}}}(_0xc925,0xd289c));function updateHUD(_0xc8ebb7){const _0x4b0fac=_0x57e5;document[_0x4b0fac(0x1a7)](_0x4b0fac(0x197))[_0x4b0fac(0x193)]='$'+(_0xc8ebb7[_0x4b0fac(0x197)]||0x0),document['getElementById']('bank')['innerText']='$'+(_0xc8ebb7[_0x4b0fac(0x1b6)]||0x0),document[_0x4b0fac(0x1a7)](_0x4b0fac(0x1a4))['innerText']=_0xc8ebb7[_0x4b0fac(0x1a4)]||_0x4b0fac(0x1a2);const _0x59c65c=document[_0x4b0fac(0x19e)]('#voice-box\x20i');_0xc8ebb7['voiceTalking']?_0x59c65c[_0x4b0fac(0x194)]['color']=_0x4b0fac(0x1ae):_0x59c65c[_0x4b0fac(0x194)][_0x4b0fac(0x1a8)]=_0x4b0fac(0x19d);document['getElementById']('hunger-fill')['style'][_0x4b0fac(0x199)]=(_0xc8ebb7[_0x4b0fac(0x1ab)]||0x64)+'%',document[_0x4b0fac(0x1a7)](_0x4b0fac(0x1b8))[_0x4b0fac(0x194)][_0x4b0fac(0x199)]=(_0xc8ebb7[_0x4b0fac(0x19f)]||0x64)+'%',document[_0x4b0fac(0x1a7)]('energy-fill')['style'][_0x4b0fac(0x199)]=(_0xc8ebb7[_0x4b0fac(0x1ad)]||0x64)+'%',document['getElementById'](_0x4b0fac(0x1aa))[_0x4b0fac(0x193)]=_0xc8ebb7['speed']||'0',document[_0x4b0fac(0x1a7)]('fuel-fill')[_0x4b0fac(0x194)]['height']=(_0xc8ebb7[_0x4b0fac(0x1af)]||0x0)+'%',document[_0x4b0fac(0x1a7)](_0x4b0fac(0x1b4))[_0x4b0fac(0x194)][_0x4b0fac(0x199)]=(_0xc8ebb7['armor']||0x0)+'%';const _0x44c3f4=document[_0x4b0fac(0x1a7)](_0x4b0fac(0x1b9));_0xc8ebb7[_0x4b0fac(0x1b5)]?_0x44c3f4[_0x4b0fac(0x1a1)][_0x4b0fac(0x1a9)](_0x4b0fac(0x1a6)):_0x44c3f4['classList'][_0x4b0fac(0x1a5)]('show');}window['addEventListener']('message',_0x12f258=>{const _0x1ed21d=_0x57e5;_0x12f258[_0x1ed21d(0x195)][_0x1ed21d(0x19b)]===_0x1ed21d(0x1b3)&&updateHUD(_0x12f258[_0x1ed21d(0x195)]);});
+  </script>
+</body>
+</html>
